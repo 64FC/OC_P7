@@ -8,11 +8,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
+#import lime
+#import lime.lime_tabular
 
 import requests
 import json
 
 from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
@@ -65,8 +68,18 @@ def load_id(dataframe):
     return ids
 
 
+#@st.cache(allow_output_mutation=True)
+#def load_explainer(data_in):
+#    explainer = lime.lime_tabular.LimeTabularExplainer(data_in.values,
+#                                                       mode='classification',
+#                                                       feature_names=list(data_in.columns),
+#                                                       class_names=['TARGET'],
+#                                                       random_state=23)
+#
+#    return explainer
+
+
 def main():
-    # Définition du titre de l'app
     st.title('Credit Default Risk')
     st.markdown('---')
 
@@ -81,29 +94,57 @@ def main():
             train_norm_init, test_norm_init = load_dataset_norm()
         st.success('Données chargées, et disponibles !')  # todo Supprimer le message après un certain temps
 
+        with st.spinner('Chargement du modèle en local'):
+            local_model = load_model_local()
+
         # On crée une copie de ces datasets pour ne pas les altérer
         train_norm = train_norm_init.copy()
         test_norm = test_norm_init.copy()
 
         sk_id = load_id(train_norm)
 
+        train_mdl = train_norm.drop(columns='SK_ID_CURR')
+        test_mdl = test_norm.drop(columns='SK_ID_CURR')
+        X = train_mdl[train_mdl.columns[:-1]]
+        y = train_mdl.TARGET
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=23)
+
+        #explainer = lime.lime_tabular.LimeTabularExplainer(np.array(X_train),
+        #                                                   mode='classification',
+        #                                                   training_labels=y_train,
+        #                                                   feature_names=train_mdl.columns,
+        #                                                   class_names=['TARGET'],
+        #                                                   random_state=23)
+
+        #st.write(local_model)
+        #exp = explainer.explain_instance(X_test.iloc[0], local_model.predict, num_features=10)
+        #st.markdown(exp.as_html(), unsafe_allow_html=True)
+
         selected_id = st.sidebar.selectbox("Veuillez sélectionner l'ID du customer", sk_id.astype('int32'))
 
         st.markdown('Utilisation en local')
         predict_btn = st.button('Prédire')
-        if predict_btn: # todo Afficher les infos du client sous forme de table
+        if predict_btn: # todo
             cli_data = train_norm[train_norm['SK_ID_CURR'] == selected_id]
             pred = cli_data['TARGET'].values
+            exp_data = cli_data.drop(columns=['SK_ID_CURR', 'TARGET'])
+            # todo en cours de test
+            st.table(cli_data)
+            st.table(exp_data)
+            #exp = explainer.explain_instance(exp_data, local_model.predict)
             #st.markdown('<font color=green>Le client est solvable {:,.2f}%</font>'.format(pred[0, 0] * 100),
             #            unsafe_allow_html=True)
             #st.markdown('<font color=red>Celui-ci est donc non solvable à {:,.2f}%</font>'.format(pred[0, 1] * 100),
             #            unsafe_allow_html=True)
-            if pred == 0:
-                st.markdown('<font color=green>Le client est solvable</font>', unsafe_allow_html=True)
-                st.table(cli_data)
-            elif pred == 1:
-                st.markdown('<font color=red>Le client est en défaut de paiement</font>', unsafe_allow_html=True)
-                st.table(cli_data)
+            # todo remettre le code ci-dessous une fois LIME OK
+            #if pred == 0: # todo Retravailler la table des infos clients fournie
+            #    st.markdown('<font color=green>Le client est solvable</font>', unsafe_allow_html=True)
+            #    st.table(cli_data)
+            #elif pred == 1:
+            #    st.markdown('<font color=red>Le client est en défaut de paiement</font>', unsafe_allow_html=True)
+            #    st.table(cli_data)
+            #exp = explainer.explain_instance(exp_data.values, local_model.predict, num_features=10)
+            #st.markdown(exp.as_html(), unsafe_allow_html=True)
 
 
         st.markdown('Requête via API')
