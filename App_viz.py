@@ -71,8 +71,8 @@ def load_model_local():
 
 @st.cache(allow_output_mutation=True)
 def get_model_predictions(input):
-    mdl_url = 'http://127.0.0.1:5000/predict'
-    #mdl_url = 'http://francoischaumet.pythonanywhere.com/predict'
+    #mdl_url = 'http://127.0.0.1:5000/predict'
+    mdl_url = 'http://francoischaumet.pythonanywhere.com/predict'
     data_json = {'data': input}
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
     #headers = {'Content-type': 'application/json'}
