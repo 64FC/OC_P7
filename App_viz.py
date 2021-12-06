@@ -21,11 +21,21 @@ from sklearn.manifold import TSNE
 
 
 # Chargement des données initiales
+#@st.cache(allow_output_mutation=True)
+#def load_dataset_init():
+#    # Lecture des jeux de données
+#    train_init = pd.read_csv('application_train.csv')
+#    test_init = pd.read_csv('application_test.csv')
+#
+#    return train_init, test_init
+
+
+# todo Test en cours: données init remplacées par subsample 3%
+# Chargement des données initiales
 @st.cache(allow_output_mutation=True)
 def load_dataset_init():
-    # Lecture des jeux de données
-    train_init = pd.read_csv('application_train.csv')
-    test_init = pd.read_csv('application_test.csv')
+    train_init = pd.read_csv('train_poc.csv', sep='\t')
+    test_init = pd.read_csv('test_poc.csv', sep='\t')
 
     return train_init, test_init
 
@@ -39,18 +49,30 @@ def load_dataset_norm():
     return train_norm_init, test_norm_init
 
 
+# Si besoin de lire des fichiers zippés, utiliser ce code
+#import zipfile
+#zf_a = zipfile.ZipFile('P7_train_norm.zip')
+#zf_b = zipfile.ZipFile('P7_test_norm.zip')
+#@st.cache(allow_output_mutation=True)
+#def load_dataset_norm():
+#    train_norm_init = pd.read_csv(zf_a.open('P7_train_norm.csv'))
+#    test_norm_init = pd.read_csv(zf_b.open('P7_test_norm.csv'))
+#
+#    return train_norm_init, test_norm_init
+
+
 # Chargement du modèle pour shap
 @st.cache(allow_output_mutation=True)
 def load_model_local():
-    local_model = joblib.load('final_model.pkl')
+    local_model = joblib.load('best_model.pkl')
 
     return local_model
 
 
 @st.cache(allow_output_mutation=True)
 def get_model_predictions(input):
-    #mdl_url = 'http://127.0.0.1:5000/predict'
-    mdl_url = 'http://francoischaumet.pythonanywhere.com/predict'
+    mdl_url = 'http://127.0.0.1:5000/predict'
+    #mdl_url = 'http://francoischaumet.pythonanywhere.com/predict'
     data_json = {'data': input}
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
     #headers = {'Content-type': 'application/json'}
