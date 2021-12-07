@@ -8,8 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
-#import lime
-#import lime.lime_tabular
+import shap
 
 import requests
 import json
@@ -20,17 +19,6 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
 
-# Chargement des données initiales
-#@st.cache(allow_output_mutation=True)
-#def load_dataset_init():
-#    # Lecture des jeux de données
-#    train_init = pd.read_csv('application_train.csv')
-#    test_init = pd.read_csv('application_test.csv')
-#
-#    return train_init, test_init
-
-
-# todo Test en cours: données init remplacées par subsample 3%
 # Chargement des données initiales
 @st.cache(allow_output_mutation=True)
 def load_dataset_init():
@@ -90,15 +78,11 @@ def load_id(dataframe):
     return ids
 
 
-#@st.cache(allow_output_mutation=True)
-#def load_explainer(data_in):
-#    explainer = lime.lime_tabular.LimeTabularExplainer(data_in.values,
-#                                                       mode='classification',
-#                                                       feature_names=list(data_in.columns),
-#                                                       class_names=['TARGET'],
-#                                                       random_state=23)
-#
-#    return explainer
+@st.cache(allow_output_mutation=True)
+def load_explainer(mdl):
+    explainer = shap.TreeExplainer(mdl)
+
+    return explainer
 
 
 def main():
@@ -119,6 +103,9 @@ def main():
         with st.spinner('Chargement du modèle en local'):
             local_model = load_model_local()
 
+        with st.spinner('Chargement de l\explainer'):
+            explainer = load_explainer(local_model)
+
         # On crée une copie de ces datasets pour ne pas les altérer
         train_norm = train_norm_init.copy()
         test_norm = test_norm_init.copy()
@@ -131,29 +118,25 @@ def main():
         y = train_mdl.TARGET
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=23)
 
-        #explainer = lime.lime_tabular.LimeTabularExplainer(np.array(X_train),
-        #                                                   mode='classification',
-        #                                                   training_labels=y_train,
-        #                                                   feature_names=train_mdl.columns,
-        #                                                   class_names=['TARGET'],
-        #                                                   random_state=23)
-
-        #st.write(local_model)
-        #exp = explainer.explain_instance(X_test.iloc[0], local_model.predict, num_features=10)
-        #st.markdown(exp.as_html(), unsafe_allow_html=True)
-
         selected_id = st.sidebar.selectbox("Veuillez sélectionner l'ID du customer", sk_id.astype('int32'))
 
         st.markdown('Utilisation en local')
         predict_btn = st.button('Prédire')
-        if predict_btn: # todo
+        if predict_btn:
             cli_data = train_norm[train_norm['SK_ID_CURR'] == selected_id]
             pred = cli_data['TARGET'].values
             exp_data = cli_data.drop(columns=['SK_ID_CURR', 'TARGET'])
             # todo en cours de test
             st.table(cli_data)
             st.table(exp_data)
-            #exp = explainer.explain_instance(exp_data, local_model.predict)
+            exp = explainer.shap_values(exp_data)
+            # Force plot
+            force_plt = shap.force_plot(np.round(explainer.expected_value[1], 3),
+                                        np.round(exp[1], 3),
+                                        np.round(exp_data, 3),
+                                        matplotlib=True,
+                                        show=False)
+            st.pyplot(force_plt)
             #st.markdown('<font color=green>Le client est solvable {:,.2f}%</font>'.format(pred[0, 0] * 100),
             #            unsafe_allow_html=True)
             #st.markdown('<font color=red>Celui-ci est donc non solvable à {:,.2f}%</font>'.format(pred[0, 1] * 100),
