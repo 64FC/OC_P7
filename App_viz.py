@@ -32,18 +32,16 @@ def load_dataset_norm():
     return train_norm_init, test_norm_init
 
 
-"""
 # Si besoin de lire des fichiers zippés, utiliser ce code
-import zipfile
-zf_a = zipfile.ZipFile('P7_train_norm.zip')
-zf_b = zipfile.ZipFile('P7_test_norm.zip')
-@st.cache(allow_output_mutation=True)
-def load_dataset_norm():
-    train_norm_init = pd.read_csv(zf_a.open('P7_train_norm.csv'))
-    test_norm_init = pd.read_csv(zf_b.open('P7_test_norm.csv'))
+# import zipfile
+# zf_a = zipfile.ZipFile('P7_train_norm.zip')
+# zf_b = zipfile.ZipFile('P7_test_norm.zip')
+# @st.cache(allow_output_mutation=True)
+# def load_dataset_norm():
+#    train_norm_init = pd.read_csv(zf_a.open('P7_train_norm.csv'))
+#    test_norm_init = pd.read_csv(zf_b.open('P7_test_norm.csv'))
 
-    return train_norm_init, test_norm_init
-"""
+#    return train_norm_init, test_norm_init
 
 
 # Chargement du modèle pour shap
@@ -184,12 +182,11 @@ def main():
             else:
                 st.markdown('<font color=red>Forte probabilité d\'échec de remboursement, attention !</font>',
                             unsafe_allow_html=True)
-            """
+
             # Proba classe 0: prêt remboursé à temps
-            st.write(results_api['Probabilite'][0][0])
+            # st.write(results_api['Probabilite'][0][0])
             # Proba classe 1 : difficultés de remboursement
-            st.write(results_api['Probabilite'][0][1])
-            """
+            # st.write(results_api['Probabilite'][0][1])
 
             # Analyse des résultats avec l'explainer
             with st.spinner('Calcul de l\'explication en cours'):
