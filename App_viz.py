@@ -14,7 +14,6 @@ import requests
 import json
 
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
@@ -59,13 +58,13 @@ def load_model_local():
 
 @st.cache(allow_output_mutation=True)
 def get_model_predictions(input):
+    # Ligne ci dessous pour test en local
     #mdl_url = 'http://127.0.0.1:5000/predict'
+    # Ligne ci dessous pour test en ligne
     mdl_url = 'http://francoischaumet.pythonanywhere.com/predict'
     data_json = {'data': input}
     headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-    #headers = {'Content-type': 'application/json'}
     prediction = requests.post(mdl_url, json=data_json, headers=headers)
-    # predicted = json.loads(prediction.content)
     predicted = json.loads(prediction.content.decode("utf-8"))
 
     return predicted
@@ -90,45 +89,75 @@ def main():
     st.markdown('---')
 
     with st.sidebar.container():
-        page = st.sidebar.selectbox('Page navigation', ['Prediction', 'Data Analyse'])
+        page = st.sidebar.selectbox('Page navigation', ['Veuillez choisir:',
+                                                        'Prediction',
+                                                        'Data Analyse'])
         st.markdown('---')
+
+    # Page d'accueil
+    if page == 'Veuillez choisir:':
+        st.subheader('Bienvenue sur ce modèle de prédiction en ligne')
+        st.write('')
+        st.markdown('Merci de sélectionner un module dans la liste déroulante de gauche')
+
 
     # Cas de la prédiction
     if page == 'Prediction':
+        st.subheader('Module de prédiction')
+        st.write('')
 
         with st.spinner('Chargement des données'):
             train_norm_init, test_norm_init = load_dataset_norm()
-        st.success('Données chargées, et disponibles !')  # todo Supprimer le message après un certain temps
-
-        with st.spinner('Chargement du modèle en local'):
             local_model = load_model_local()
-
-        with st.spinner('Chargement de l\explainer'):
             explainer = load_explainer(local_model)
+        st.success('Données, modèle et explainer chargés, et disponibles !')
 
         # On crée une copie de ces datasets pour ne pas les altérer
         train_norm = train_norm_init.copy()
         test_norm = test_norm_init.copy()
 
-        sk_id = load_id(train_norm)
+        sk_id_train = load_id(train_norm)
+        sk_id_test = load_id(test_norm)
 
-        train_mdl = train_norm.drop(columns='SK_ID_CURR')
-        test_mdl = test_norm.drop(columns='SK_ID_CURR')
-        X = train_mdl[train_mdl.columns[:-1]]
-        y = train_mdl.TARGET
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=23)
+        selected_id_pred = st.sidebar.selectbox('Veuillez sélectionner l\'ID du customer, pour la prédiction:',
+                                                sk_id_train.astype('int32'))
+        selected_id_prob = st.sidebar.selectbox('Veuillez sélectionner l\'ID du customer, pour la probabilité:',
+                                                sk_id_test.astype('int32'))
 
-        selected_id = st.sidebar.selectbox("Veuillez sélectionner l'ID du customer", sk_id.astype('int32'))
-
-        st.markdown('Utilisation en local')
+        st.write('')
+        st.markdown('Veuillez cliquer pour afficher les résultats de la prédiction:')
         predict_btn = st.button('Prédire')
         if predict_btn:
-            cli_data = train_norm[train_norm['SK_ID_CURR'] == selected_id]
-            pred = cli_data['TARGET'].values
+            # On récupère les résultats via l'API
+            cli_json = json.loads(
+                train_norm[train_norm['SK_ID_CURR'] == selected_id_pred].drop(columns=['SK_ID_CURR', 'TARGET']).to_json(
+                    orient='records'))[0]
+            results_api = get_model_predictions(cli_json)
+
+            # On récupère la valeur réelle
+            cli_data = train_norm[train_norm['SK_ID_CURR'] == selected_id_pred]
+            pred = cli_data['TARGET']
+
+            if results_api['Prediction'][0] == 0:
+                st.markdown('<font color=green>Le client est solvable</font>', unsafe_allow_html=True)
+            elif results_api['Prediction'][0] == 1:
+                st.markdown('<font color=red>Le client est en défaut de paiement</font>', unsafe_allow_html=True)
+
+            # On compare les résultats
+            col1, col2 = st.columns(2)
+            col1.write('Classe prédite:')
+            col1.write(pred)
+            col2.write('Classe réelle:')
+            col2.write(results_api['Prediction'][0])
+
+            # On affiche les informations du client
+            st.write('Données (normalisées) du client:')
+            st.write(cli_data)
+            st.write('')
+
+            # Analyse des résultats avec l'explainer
+            st.write('Facteurs les plus influents dans ce résultat:')
             exp_data = cli_data.drop(columns=['SK_ID_CURR', 'TARGET'])
-            # todo en cours de test
-            st.table(cli_data)
-            st.table(exp_data)
             exp = explainer.shap_values(exp_data)
             # Force plot
             force_plt = shap.force_plot(np.round(explainer.expected_value[1], 3),
@@ -137,38 +166,58 @@ def main():
                                         matplotlib=True,
                                         show=False)
             st.pyplot(force_plt)
-            #st.markdown('<font color=green>Le client est solvable {:,.2f}%</font>'.format(pred[0, 0] * 100),
-            #            unsafe_allow_html=True)
-            #st.markdown('<font color=red>Celui-ci est donc non solvable à {:,.2f}%</font>'.format(pred[0, 1] * 100),
-            #            unsafe_allow_html=True)
-            # todo remettre le code ci-dessous une fois LIME OK
-            #if pred == 0: # todo Retravailler la table des infos clients fournie
-            #    st.markdown('<font color=green>Le client est solvable</font>', unsafe_allow_html=True)
-            #    st.table(cli_data)
-            #elif pred == 1:
-            #    st.markdown('<font color=red>Le client est en défaut de paiement</font>', unsafe_allow_html=True)
-            #    st.table(cli_data)
-            #exp = explainer.explain_instance(exp_data.values, local_model.predict, num_features=10)
-            #st.markdown(exp.as_html(), unsafe_allow_html=True)
 
-
-        st.markdown('Requête via API')
+        st.write('')
+        st.markdown('Veuillez cliquer pour afficher les résultats de la probabilité (via API):')
         proba_btn = st.button('Probabilité')
         if proba_btn:
-            # todo En cours de test
-            cli_json = json.loads(train_norm[train_norm['SK_ID_CURR'] == selected_id].drop(columns=['SK_ID_CURR', 'TARGET']).to_json(orient='records'))[0]
-            pred = get_model_predictions(cli_json)
-            if pred['Prediction'] == [0]:
-                st.markdown('<font color=green>Le client est solvable</font>', unsafe_allow_html=True)
-            elif pred['Prediction'] == [1]:
-                st.markdown('<font color=red>Le client est en défaut de paiement</font>', unsafe_allow_html=True)
-            else:
-                st.write('Ne reconnait pas la comparaison: vérifier le code')
+            # On récupère les résultats via l'API
+            cli_json = json.loads(
+                test_norm[test_norm['SK_ID_CURR'] == selected_id_prob].drop(columns=['SK_ID_CURR']).to_json(
+                    orient='records'))[0]
+            results_api = get_model_predictions(cli_json)
 
+            # On récupère la valeur réelle
+            cli_data = test_norm[test_norm['SK_ID_CURR'] == selected_id_prob]
+
+            # On affiche en fonction de la probabilité
+            if results_api['Probabilite'][0][1] < 0.20:
+                st.markdown('<font color=green>Faible probabilité d\'échec de remboursement.</font>',
+                            unsafe_allow_html=True)
+            elif results_api['Probabilite'][0][1] < 0.50:
+                st.markdown('<font color=yellow>Risque d\'échec de remboursement, à contrôler.</font>',
+                            unsafe_allow_html=True)
+            else:
+                st.markdown('<font color=red>Forte probabilité d\'échec de remboursement, attention !</font>',
+                            unsafe_allow_html=True)
+
+            # Proba classe 0: prêt remboursé à temps
+            #st.write(results_api['Probabilite'][0][0])
+            # Proba classe 1 : difficultés de remboursement
+            #st.write(results_api['Probabilite'][0][1])
+
+            # Analyse des résultats avec l'explainer
+            st.write('Représentation des features qui ont amené à ce résultat:')
+            with st.spinner('Calcul de l\'explication en cours'):
+                exp = explainer(test_norm.drop(columns=['SK_ID_CURR']))
+
+            with st.spinner('Graphique en cours de préparation...'):
+                # Attention au warning disabled suivant, à vérifier de temps en temps
+                st.set_option('deprecation.showPyplotGlobalUse', False)
+                # Création du graphique
+                sum_plt = shap.summary_plot(shap_values=np.take(exp.values, 0, axis=-1),
+                                            features=test_norm.drop(columns=['SK_ID_CURR']),
+                                            feature_names=test_norm.drop(columns=['SK_ID_CURR']).columns,
+                                            plot_size=(8,8),
+                                            sort=True,
+                                            show=False)
+                st.pyplot(sum_plt)
 
 
     # Cas de la data analyse:
     if page == 'Data Analyse':
+        st.subheader('Module d\'analyse')
+        st.write('')
 
         with st.spinner('Chargement des données'):
             train_init, test_init = load_dataset_init()
