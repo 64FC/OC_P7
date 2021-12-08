@@ -13,10 +13,6 @@ import shap
 import requests
 import json
 
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
-
 
 # Chargement des données initiales
 @st.cache(allow_output_mutation=True)
@@ -36,16 +32,18 @@ def load_dataset_norm():
     return train_norm_init, test_norm_init
 
 
+"""
 # Si besoin de lire des fichiers zippés, utiliser ce code
-#import zipfile
-#zf_a = zipfile.ZipFile('P7_train_norm.zip')
-#zf_b = zipfile.ZipFile('P7_test_norm.zip')
-#@st.cache(allow_output_mutation=True)
-#def load_dataset_norm():
-#    train_norm_init = pd.read_csv(zf_a.open('P7_train_norm.csv'))
-#    test_norm_init = pd.read_csv(zf_b.open('P7_test_norm.csv'))
-#
-#    return train_norm_init, test_norm_init
+import zipfile
+zf_a = zipfile.ZipFile('P7_train_norm.zip')
+zf_b = zipfile.ZipFile('P7_test_norm.zip')
+@st.cache(allow_output_mutation=True)
+def load_dataset_norm():
+    train_norm_init = pd.read_csv(zf_a.open('P7_train_norm.csv'))
+    test_norm_init = pd.read_csv(zf_b.open('P7_test_norm.csv'))
+
+    return train_norm_init, test_norm_init
+"""
 
 
 # Chargement du modèle pour shap
@@ -59,7 +57,7 @@ def load_model_local():
 @st.cache(allow_output_mutation=True)
 def get_model_predictions(input):
     # Ligne ci dessous pour test en local
-    #mdl_url = 'http://127.0.0.1:5000/predict'
+    # mdl_url = 'http://127.0.0.1:5000/predict'
     # Ligne ci dessous pour test en ligne
     mdl_url = 'http://francoischaumet.pythonanywhere.com/predict'
     data_json = {'data': input}
@@ -85,7 +83,7 @@ def load_explainer(mdl):
 
 
 def main():
-    st.title('Credit Default Risk')
+    st.title('Credit Default Risk - online app')
     st.markdown('---')
 
     with st.sidebar.container():
@@ -98,8 +96,7 @@ def main():
     if page == 'Veuillez choisir:':
         st.subheader('Bienvenue sur ce modèle de prédiction en ligne')
         st.write('')
-        st.markdown('Merci de sélectionner un module dans la liste déroulante de gauche')
-
+        st.warning('Merci de sélectionner un module dans la liste déroulante de gauche')
 
     # Cas de la prédiction
     if page == 'Prediction':
@@ -125,7 +122,7 @@ def main():
                                                 sk_id_test.astype('int32'))
 
         st.write('')
-        st.markdown('Veuillez cliquer pour afficher les résultats de la prédiction:')
+        st.warning('Veuillez cliquer pour afficher les résultats de la prédiction:')
         predict_btn = st.button('Prédire')
         if predict_btn:
             # On récupère les résultats via l'API
@@ -156,7 +153,7 @@ def main():
             st.write('')
 
             # Analyse des résultats avec l'explainer
-            st.write('Facteurs les plus influents dans ce résultat:')
+            st.info('Facteurs les plus influents dans ce résultat:')
             exp_data = cli_data.drop(columns=['SK_ID_CURR', 'TARGET'])
             exp = explainer.shap_values(exp_data)
             # Force plot
@@ -168,7 +165,7 @@ def main():
             st.pyplot(force_plt)
 
         st.write('')
-        st.markdown('Veuillez cliquer pour afficher les résultats de la probabilité (via API):')
+        st.warning('Veuillez cliquer pour afficher les résultats de la probabilité (via API):')
         proba_btn = st.button('Probabilité')
         if proba_btn:
             # On récupère les résultats via l'API
@@ -176,9 +173,6 @@ def main():
                 test_norm[test_norm['SK_ID_CURR'] == selected_id_prob].drop(columns=['SK_ID_CURR']).to_json(
                     orient='records'))[0]
             results_api = get_model_predictions(cli_json)
-
-            # On récupère la valeur réelle
-            cli_data = test_norm[test_norm['SK_ID_CURR'] == selected_id_prob]
 
             # On affiche en fonction de la probabilité
             if results_api['Probabilite'][0][1] < 0.20:
@@ -190,16 +184,18 @@ def main():
             else:
                 st.markdown('<font color=red>Forte probabilité d\'échec de remboursement, attention !</font>',
                             unsafe_allow_html=True)
-
+            """
             # Proba classe 0: prêt remboursé à temps
-            #st.write(results_api['Probabilite'][0][0])
+            st.write(results_api['Probabilite'][0][0])
             # Proba classe 1 : difficultés de remboursement
-            #st.write(results_api['Probabilite'][0][1])
+            st.write(results_api['Probabilite'][0][1])
+            """
 
             # Analyse des résultats avec l'explainer
-            st.write('Représentation des features qui ont amené à ce résultat:')
             with st.spinner('Calcul de l\'explication en cours'):
                 exp = explainer(test_norm.drop(columns=['SK_ID_CURR']))
+
+            st.info('Représentation des features qui ont amené à ce résultat:')
 
             with st.spinner('Graphique en cours de préparation...'):
                 # Attention au warning disabled suivant, à vérifier de temps en temps
@@ -208,24 +204,26 @@ def main():
                 sum_plt = shap.summary_plot(shap_values=np.take(exp.values, 0, axis=-1),
                                             features=test_norm.drop(columns=['SK_ID_CURR']),
                                             feature_names=test_norm.drop(columns=['SK_ID_CURR']).columns,
-                                            plot_size=(8,8),
+                                            plot_size=(8, 8),
                                             sort=True,
                                             show=False)
                 st.pyplot(sum_plt)
 
-
     # Cas de la data analyse:
     if page == 'Data Analyse':
-        st.subheader('Module d\'analyse')
+        st.subheader("Module d'analyse")
         st.write('')
 
         with st.spinner('Chargement des données'):
             train_init, test_init = load_dataset_init()
-        st.success('Données chargées, et disponibles !')  # todo Supprimer le message après un certain temps
+        st.success('Données chargées, et disponibles !')
 
         # On crée une copie de ces datasets pour ne pas les altérer
         train_data = train_init.copy()
-        test_data = test_init.copy()
+        # test_data = test_init.copy()
+
+        st.warning('Veuillez sélectionner deux variables à explorer dans le menu de gauche')
+        st.write('')
 
         # Création des plots
         def plot_vars(var1, var2):
@@ -251,56 +249,37 @@ def main():
         cols_to_plot.remove('SK_ID_CURR')
         cols_to_plot.remove('TARGET')
 
-        # Création des inputs
-        selected_var1 = "Veuillez choisir une valeur"
-        selected_var2 = "Veuillez choisir une valeur"
+        selected_var1 = st.sidebar.selectbox('Première variable à explorer', cols_to_plot, index=5)
 
-        # Définition de l'input 1
-        if selected_var1 == "Veuillez choisir une valeur":
-            selected_var1 = st.sidebar.selectbox("Première variable à explorer", cols_to_plot)
+        # Suppression de la première feature sélectionnée
+        cols_to_plot_b = cols_to_plot.copy()
+        cols_to_plot_b.remove(selected_var1)
 
-        # Définition de l'input 2
-        if selected_var2 == "Veuillez choisir une valeur": # todo Supprimer le choix 1
-            # On supprime la première variable sélectionnée de la liste
-            cols_left = cols_to_plot.copy()
-            #cols_left = cols_left.remove(selected_var1)
-            selected_var2 = st.sidebar.selectbox("Deuxième variable à explorer", cols_left)
-
+        selected_var2 = st.sidebar.selectbox('Deuxième variable à explorer', cols_to_plot_b)
 
         # Représentation
-        plot_button = st.button("Graphique bi-varié")
+        st.write('')
+        plot_button = st.button('Graphique bi-varié')
         if plot_button:
-            fig = plt.figure()
-            ax = plot_vars(selected_var1, selected_var2)
-            st.plotly_chart(ax, use_container_width=True)
+            graph_bi = plot_vars(selected_var1, selected_var2)
+            st.plotly_chart(graph_bi, use_container_width=True)
 
         # Heatmap des corrélations
-        corr_button = st.button("Graphique de corrélation")
+        st.write('')
+        corr_button = st.button('Graphique de corrélation')
         if corr_button:
-            df_corr = train_data.corr()
+            df_corr = train_data[['TARGET', selected_var1, selected_var2]].corr()
             fig = go.Figure()
             fig.add_trace(
-                go.Heatmap(x=df_corr.columns, y=df_corr.index, z=np.array(df_corr))
+                go.Heatmap(x=df_corr.columns,
+                           y=df_corr.index,
+                           z=np.array(df_corr))
             )
-            fig.update_layout(title="Graphique de corrélation")
+            fig.update_layout(showlegend=True,
+                              width=800,
+                              height=600)
             st.plotly_chart(fig)
 
-        # Réduction de dimension PCA # todo A modifier, jeu de données à retraiter
-        pca_button = st.button("Réduction de dimension PCA")
-        if pca_button:
-            df_reduc = pd.get_dummies(train_data)
-            scaler = StandardScaler()
-            df_pca = scaler.fit_transform(df_reduc)
-            pca = PCA(n_components=2)
-            components = pca.fit_transform(df_pca)
-            fig = px.scatter(components, color=train_data['TARGET'],
-                             title="Analyse en Composantes Principales")
-            st.plotly_chart(fig)
-
-        # Réduction de dimension tSNE
-        tsne_button = st.button("Réduction de dimension")
-        if tsne_button:
-            st.write("Non fonctionnel pour le moment")
 
 if __name__ == '__main__':
     main()
