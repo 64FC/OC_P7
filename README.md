@@ -20,3 +20,5 @@ Le fichier best_model.pkl contient le modèle entraîné.
 Le fichier API_predict.py contient le code de l'API, qui est hebergée sur PythonAnywhere.
 
 Le fichier App_viz.py contient le code du dashboard Streamlit, qui est partagé via share.streamlit.
+
+Ce dashboard est accessible via: https://share.streamlit.io/64fc/oc_p7/main/App_viz.py
