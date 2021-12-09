@@ -115,21 +115,21 @@ def main():
     st.write('')
 
     with st.sidebar.container():
-        page = st.sidebar.selectbox('Page navigation', ['Veuillez choisir:',
+        page = st.sidebar.selectbox('Page navigation', ['Veuillez choisir :',
                                                         'Prediction',
                                                         'Data Analyse'])
 
     # Page d'accueil
-    if page == 'Veuillez choisir:':
+    if page == 'Veuillez choisir :':
         st.sidebar.write('---')
         st.subheader('Bienvenue sur ce modèle de prédiction en ligne.')
         st.subheader('Voici le détail des options disponibles :')
         st.write('')
-        st.write('Module de prédiction:')
+        st.write('Module de prédiction :')
         st.write(' - *permet de prédire la solvabilité du client choisi*')
         st.write(' - *permet de déterminer la probabilité de remboursement du client choisi*')
         st.write('')
-        st.write('Module de data-analyse:')
+        st.write('Module de data-analyse :')
         st.write(' - *permet de représenter la relation entre deux variables sélectionnées*')
         st.write(' - *permet de représenter la corrélation entre deux variables sélectionnées et la cible*')
         st.write('')
@@ -143,7 +143,7 @@ def main():
         st.write(' - *permet de prédire la solvabilité du client choisi*')
         st.write(' - *permet de déterminer la probabilité de remboursement du client choisi*')
         st.write('')
-        st.caption('Pour rappel:')
+        st.caption('Pour rappel :')
         st.caption(' - *Classe 0 :* le prêt est remboursé dans les temps')
         st.caption(' - *Classe 1 :* le client a des difficultés de remboursement')
         st.write('')
@@ -171,10 +171,10 @@ def main():
         st.write('')
         cpred, cprob = st.columns(2)
         with cpred:
-            st.write('Pour déterminer la solvabilité du client, veuillez cliquer ci-dessous:')
+            st.write('Pour déterminer la solvabilité du client, veuillez cliquer ci-dessous :')
             predict_btn = st.button('Prédire')
         with cprob:
-            st.write('Pour déterminer la probabilité de remboursement, veuillez cliquer ci-dessous:')
+            st.write('Pour déterminer la probabilité de remboursement, veuillez cliquer ci-dessous :')
             proba_btn = st.button('Probabilité')
 
         if predict_btn:
@@ -200,22 +200,22 @@ def main():
             # On compare les résultats
             cls_pred1, cls_pred2, cls_real1, cls_real2 = st.columns(4)
             with cls_pred1, cls_pred2:
-                cls_pred1.write('*Classe prédite:*')
+                cls_pred1.write('*Classe prédite :*')
                 cls_pred2.markdown(results_api['Prediction'][0])
             with cls_real1, cls_real2:
-                cls_real1.write('*Classe réelle:*')
+                cls_real1.write('*Classe réelle :*')
                 cls_real2.markdown(pred.values)
 
             # On affiche les informations du client
             st.write('')
             st.write('')
-            st.write('Pour information, voici les données initiales (normalisées) du client:')
+            st.write('Pour information, voici les données initiales (normalisées) du client :')
             st.write(cli_data)
             st.write('')
 
             # Analyse des résultats avec l'explainer
             st.write('')
-            st.write('Les variables ayant eu le plus d\'influence dans ce résultat sont:')
+            st.write('Les variables ayant eu le plus d\'influence dans ce résultat sont :')
             st.write('')
             exp_data = cli_data.drop(columns=['SK_ID_CURR', 'TARGET'])
             exp = explainer.shap_values(exp_data)
@@ -245,7 +245,7 @@ def main():
                     st.write("{:.2%}".format(results_api['Probabilite'][0][0]))
             elif results_api['Probabilite'][0][0] > 0.35:
                 with c_prob1:
-                    st.markdown('<font color=yellow>Risque d\'échec de remboursement, à contrôler :</font>',
+                    st.markdown('<font color=yellow>Risque d\'échec de remboursement, à surveiller :</font>',
                                 unsafe_allow_html=True)
                 with c_prob2:
                     st.write("{:.2%}".format(results_api['Probabilite'][0][0]))
@@ -265,7 +265,7 @@ def main():
             exp = run_explainer(explainer, test_norm)
 
             st.write('')
-            st.write('Représentation des features qui ont amené à ce résultat:')
+            st.write('Représentation des variables qui ont amené à ce résultat :')
             st.write('')
 
             with st.spinner('Graphique en cours de préparation...'):
@@ -318,10 +318,10 @@ def main():
 
         cgrph, ccorr = st.columns(2)
         with cgrph:
-            st.write('Pour représenter la relation entre les variables choisies, veuillez cliquer ci-dessous:')
+            st.write('Pour représenter la relation entre les variables choisies, veuillez cliquer ci-dessous :')
             plot_btn = st.button('Graphique bi-varié')
         with ccorr:
-            st.write('Pour la corrélation entre les variables et la cible, veuillez cliquer ci-dessous:')
+            st.write('Pour la corrélation entre les variables et la cible, veuillez cliquer ci-dessous :')
             corr_btn = st.button('Corrélation')
 
         # Représentation
