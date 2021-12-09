@@ -1,10 +1,16 @@
 # Streamlit web application for Home Credit Default Risk
 
-## Requirements
+## Objectif du projet
+
+Le but de ce projet est de réussir à prédire si un client pourra rembourser son crédit, ou s'il y a un risque qu'il soit en défaut de paiement, ceci en vue d'étayer la décision d'accorder, ou non, un prêt à un client potentiel.
+
+## Contenu du dossier
+
+### Requirements
 
 Le fichier requirements.txt contient les packages utilisés et leur version
 
-## Files
+### Files
 
 Les fichiers train_poc.csv, test_poc.csv, P7_train_norm.csv et P7_test_norm.csv contiennent les données:
 - Les fichiers train_poc.csv et test_poc.csv contiennent un échantillon des jeux de données initiaux.
@@ -15,7 +21,7 @@ Le fichier P7_01_analyse.ipynb contient le code du notebook qui a permis l'explo
 
 Le fichier best_model.pkl contient le modèle entraîné.
 
-## API & dashboard
+### API & dashboard
 
 Le fichier API_predict.py contient le code de l'API, qui est hebergée sur PythonAnywhere.
 
