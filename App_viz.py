@@ -91,20 +91,20 @@ def run_explainer(xplnr, df):
 
 
 # Création des plots pour deux variables
-@st.cache(allow_output_mutation=True)
-def plot_vars(var1, var2):
-    if train_data[var1].dtypes != 'object' and train_data[var2].dtypes != 'object':
+@st.cache(allow_output_mutation=True, suppress_st_warning=True)
+def plot_vars(df, var1, var2):
+    if df[var1].dtypes != 'object' and df[var2].dtypes != 'object':
         with st.echo():
-            graph = px.scatter(data_frame=train_data, x=var1, y=var2, color='TARGET')
-    elif train_data[var1].dtypes == 'object' and train_data[var2].dtypes != 'object':
+            graph = px.scatter(data_frame=df, x=var1, y=var2, color='TARGET')
+    elif df[var1].dtypes == 'object' and df[var2].dtypes != 'object':
         with st.echo():
-            graph = px.violin(data_frame=train_data, x=var1, y=var2, color='TARGET')
-    elif train_data[var1].dtypes != 'object' and train_data[var2].dtypes == 'object':
+            graph = px.violin(data_frame=df, x=var1, y=var2, color='TARGET')
+    elif df[var1].dtypes != 'object' and df[var2].dtypes == 'object':
         with st.echo():
-            graph = px.violin(data_frame=train_data, x=var1, y=var2, color='TARGET')
+            graph = px.violin(data_frame=df, x=var1, y=var2, color='TARGET')
     else:
         with st.echo():
-            graph = px.scatter(data_frame=train_data, x=var1, y=var2, color='TARGET')
+            graph = px.scatter(data_frame=df, x=var1, y=var2, color='TARGET')
 
     return graph
 
@@ -201,10 +201,10 @@ def main():
             cls_pred1, cls_pred2, cls_real1, cls_real2 = st.columns(4)
             with cls_pred1, cls_pred2:
                 cls_pred1.write('*Classe prédite:*')
-                cls_pred2.markdown(pred.values)
+                cls_pred2.markdown(results_api['Prediction'][0])
             with cls_real1, cls_real2:
                 cls_real1.write('*Classe réelle:*')
-                cls_real2.markdown(results_api['Prediction'][0])
+                cls_real2.markdown(pred.values)
 
             # On affiche les informations du client
             st.write('')
@@ -326,7 +326,7 @@ def main():
 
         # Représentation
         if plot_btn:
-            graph_bi = plot_vars(selected_var1, selected_var2)
+            graph_bi = plot_vars(train_data, selected_var1, selected_var2)
             st.plotly_chart(graph_bi, use_container_width=True)
 
         # Heatmap des corrélations
