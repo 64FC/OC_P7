@@ -252,6 +252,7 @@ def main():
         st.write('')
 
         with st.spinner('Chargement des données'):
+            train_s_init, test_s_init = load_dataset_init()
             train_norm_init, test_norm_init = load_dataset_norm()
             local_model = load_model_local()
             explainer = load_explainer(local_model)
@@ -288,6 +289,8 @@ def main():
 
             # On récupère la valeur réelle
             cli_data = train_norm[train_norm['SK_ID_CURR'] == selected_id_pred]
+            show_data = train_s_init[train_s_init['SK_ID_CURR'] == selected_id_pred].drop(
+                columns=['SK_ID_CURR', 'TARGET'])
             pred = cli_data['TARGET']
 
             if results_api['Prediction'][0] == 0:
@@ -311,8 +314,8 @@ def main():
             # On affiche les informations du client
             st.write('')
             st.write('')
-            st.write('Pour information, voici les données initiales (normalisées) du client :')
-            st.write(cli_data)
+            st.write('Pour information, voici les données initiales du client :')
+            st.write(show_data)
             st.write('')
 
             # Analyse des résultats avec l'explainer
