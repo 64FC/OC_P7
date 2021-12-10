@@ -116,6 +116,7 @@ def main():
 
     with st.sidebar.container():
         page = st.sidebar.selectbox('Page navigation', ['Veuillez choisir :',
+                                                        'Exploration des données client',
                                                         'Prediction',
                                                         'Data Analyse'])
 
@@ -124,6 +125,9 @@ def main():
         st.sidebar.write('---')
         st.subheader('Bienvenue sur ce modèle de prédiction en ligne.')
         st.subheader('Voici le détail des options disponibles :')
+        st.write('')
+        st.write('Module d\'exploration des données client :')
+        st.write(' - *permet de visualiser la répartition des clients d\'après certains filtres*')
         st.write('')
         st.write('Module de prédiction :')
         st.write(' - *permet de prédire la solvabilité du client choisi*')
@@ -134,6 +138,105 @@ def main():
         st.write(' - *permet de représenter la corrélation entre deux variables sélectionnées et la cible*')
         st.write('')
         st.info('Pour commencer, merci de sélectionner le module à utiliser dans la liste déroulante de gauche.')
+
+    # Cas de l'exploration des données
+    if page == 'Exploration des données client':
+        st.sidebar.write('---')
+        st.subheader('Module d\'exploration des données client')
+        st.write('')
+        st.write(' - *permet de visualiser la répartition des clients d\'après certains filtres*')
+        st.write('')
+        st.caption('Pour rappel :')
+        st.caption(' - *Classe 0 :* le prêt est remboursé dans les temps')
+        st.caption(' - *Classe 1 :* le client a des difficultés de remboursement')
+        st.write('')
+
+        with st.spinner('Chargement des données'):
+            train_init, test_init = load_dataset_init()
+
+        # On crée une copie de ces datasets pour ne pas les altérer
+        train_explo = train_init.copy()
+        # test_explo = test_init.copy()
+
+        # On crée deux nouvelles colonnes pour plus de facilité d'utilisation
+        train_explo['AGE_CLI'] = train_explo['DAYS_BIRTH']/(-365)
+        train_explo['YEARS_EMPLOYED'] = train_explo['DAYS_EMPLOYED']/(-365)
+
+        # On supprime la valeur aberrante des années d'emploi
+        train_explo_n = train_explo[train_explo['YEARS_EMPLOYED']>-1]
+
+        # On va récupérer les valeurs d'intérêt pour les filtres
+        # Nombre d'enfants :
+        cnt_children = train_explo_n['CNT_CHILDREN'].sort_values().astype('int32').unique().tolist()
+        # Montant total des revenus (en milliers) :
+        amt_inc_ttl = train_explo_n['AMT_INCOME_TOTAL'].sort_values().astype('int32').unique().tolist()
+        # Années d'emploi :
+        years_empl = train_explo_n['YEARS_EMPLOYED'].sort_values().astype('int32').unique().tolist()
+        # Type d'éducation :
+        ed_lst = train_explo_n['NAME_EDUCATION_TYPE'].unique().tolist()
+        ed_lst.insert(0, '<Tous>')
+        # Type de famille :
+        fam_lst = train_explo_n['NAME_FAMILY_STATUS'].unique().tolist()
+        fam_lst.insert(0, '<Tous>')
+        # Type d'occupation :
+        occ_lst = train_explo_n['OCCUPATION_TYPE'].unique().tolist()
+        occ_lst.insert(0, '<Tous>')
+
+        st.info('Veuillez sélectionner les filtres à appliquer dans le menu de gauche')
+        st.write('')
+
+        # Définition des filtres
+        st.sidebar.write('')
+        selected_children = st.sidebar.slider('Nombre d\'enfants :',
+                                              min_value=cnt_children[0],
+                                              max_value=cnt_children[len(cnt_children)-1],
+                                              value=(cnt_children[0], cnt_children[len(cnt_children)-1]),
+                                              step=1)
+        selected_income = st.sidebar.slider('Montant total des revenus (en milliers) :',
+                                            min_value=amt_inc_ttl[0],
+                                            max_value=amt_inc_ttl[len(amt_inc_ttl) - 1],
+                                            value=(amt_inc_ttl[0], amt_inc_ttl[len(amt_inc_ttl) - 1]))
+        selected_employment = st.sidebar.slider('Années d\'emploi :',
+                                                min_value=years_empl[0],
+                                                max_value=years_empl[len(years_empl) - 1],
+                                                value=(years_empl[0], years_empl[len(years_empl) - 1]))
+        selected_education = st.sidebar.selectbox('Type d\'éducation :', ed_lst)
+        selected_family = st.sidebar.selectbox('Type de famille :', fam_lst)
+        selected_occupation = st.sidebar.selectbox('Type d\'occupation :', occ_lst)
+
+        exp1, exp2 = st.columns(2)
+        with exp1:
+            st.write('Afficher la répartition des clients :')
+        with exp2:
+            display_btn = st.button('Visualisation')
+
+        if display_btn:
+            # Copie du jeu de données pour filtre
+            data_display = train_explo_n
+            # Filtres sur les selectbox :
+            if selected_education != '<Tous>':
+                data_display = data_display[data_display['NAME_EDUCATION_TYPE'] == selected_education]
+            if selected_family != '<Tous>':
+                data_display = data_display[data_display['NAME_FAMILY_STATUS'] == selected_family]
+            if selected_occupation != '<Tous>':
+                data_display = data_display[data_display['OCCUPATION_TYPE'] == selected_occupation]
+            # Filtres sur les slider :
+            data_display = data_display[data_display['CNT_CHILDREN'] >= selected_children[0]]
+            data_display = data_display[data_display['CNT_CHILDREN'] <= selected_children[1]]
+            data_display = data_display[data_display['AMT_INCOME_TOTAL'] >= selected_income[0]]
+            data_display = data_display[data_display['AMT_INCOME_TOTAL'] <= selected_income[1]]
+            data_display = data_display[data_display['YEARS_EMPLOYED'] >= selected_employment[0]]
+            data_display = data_display[data_display['YEARS_EMPLOYED'] <= selected_employment[1]]
+
+            # Représentation graphique
+            with st.spinner('Graphique en cours de création...'):
+                grph = px.scatter(data_frame=data_display,
+                                  x='AGE_CLI',
+                                  y='AMT_CREDIT',
+                                  facet_col='CODE_GENDER',
+                                  color='TARGET',
+                                  title='Répartition des clients d\'après leur âge et le montant du crédit')
+                st.plotly_chart(grph, use_container_width=True)
 
     # Cas de la prédiction
     if page == 'Prediction':
@@ -164,7 +267,6 @@ def main():
         st.info('Pour commencer, veuillez sélectionner l\'ID du client dans la liste déroulante de gauche.')
         selected_id_pred = st.sidebar.selectbox('ID client pour la solvabilité :',
                                                 sk_id_train.astype('int32'))
-        st.sidebar.write('')
         selected_id_prob = st.sidebar.selectbox('ID client pour la probabilité de remboursement :',
                                                 sk_id_test.astype('int32'))
 
@@ -306,14 +408,12 @@ def main():
         cols_to_plot.remove('SK_ID_CURR')
         cols_to_plot.remove('TARGET')
 
-        st.sidebar.write('')
         selected_var1 = st.sidebar.selectbox('Première variable à explorer', cols_to_plot, index=5)
 
         # Suppression de la première feature sélectionnée
         cols_to_plot_b = cols_to_plot.copy()
         cols_to_plot_b.remove(selected_var1)
 
-        st.sidebar.write('')
         selected_var2 = st.sidebar.selectbox('Deuxième variable à explorer', cols_to_plot_b, index=10)
 
         cgrph, ccorr = st.columns(2)
